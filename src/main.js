@@ -96,7 +96,8 @@ engine.subscribe((event, data) => {
     el.infoSdk.textContent = data.device.sdk;
     el.infoSerial.textContent = data.device.serial;
 
-    showToast('Connected to ' + data.device.model, 'success');
+    showToast('Connected to ' + data.device.model + ' via WebUSB', 'success');
+el.navTabs[0].click();
   } else if (event === 'disconnected') {
     el.statusDot.className = 'status-dot disconnected';
     el.deviceDisplay.textContent = 'No Device Connected';
@@ -354,7 +355,7 @@ function promptBatchAction(actionName, commandGenerator, promptText) {
       await engine.runAdbCommand(cmd);
     }
     showToast('Successfully executed ' + actionName, 'success');
-    renderTable();
+    await engine.loadDevicePackages();
   };
 
   el.confirmModal.style.display = 'flex';
@@ -449,7 +450,8 @@ el.btnToolsRestorePlayStore.addEventListener('click', async () => {
   }
 });
 
-engine.startDemoMode();
+// Initial state: show empty prompt or start demo if explicitly requested
+renderTable([]);
 });
 
 el.btnRebootNormal.addEventListener('click', async () => {

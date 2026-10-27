@@ -1,15 +1,19 @@
+import { Adb, AdbDaemonTransport } from '@yume-chan/adb';
+import { AdbDaemonWebUsbDeviceManager } from '@yume-chan/adb-daemon-webusb';
+import AdbWebCredentialStore from '@yume-chan/adb-credential-web';
 import { BLOATWARE_DATABASE, getPackageMeta } from './bloatware-db.js';
 
 export class WebAdbEngine {
   constructor() {
+    this.adb = null;
     this.usbDevice = null;
     this.isConnected = false;
     this.isDemoMode = false;
     this.deviceInfo = {
       model: "Unknown Device",
       manufacturer: "Android",
-      version: "14",
-      sdk: "34",
+      version: "Unknown",
+      sdk: "Unknown",
       serial: ""
     };
     this.packages = new Map();
@@ -32,45 +36,75 @@ export class WebAdbEngine {
   }
 
   isWebUsbSupported() {
-    return !!(navigator && navigator.usb);
+    return !!(typeof navigator !== 'undefined' && navigator.usb);
   }
 
   async connectWebUsb() {
     if (!this.isWebUsbSupported()) {
-      throw new Error("WebUSB is not supported in this browser. Please use Chrome, Edge, or Brave.");
+      throw new Error("WebUSB is not supported in this browser or context. Please use Chrome/Edge on HTTPS or localhost.");
     }
 
     try {
-      const device = await navigator.usb.requestDevice({
-        filters: [{ classCode: 0xFF, subclassCode: 0x42, protocolCode: 0x01 }]
-      });
-
-      await device.open();
-      if (device.configuration === null) {
-        await device.selectConfiguration(1);
+      const manager = new AdbDaemonWebUsbDeviceManager(navigator.usb);
+      const device = await manager.requestDevice();
+      if (!device) {
+        return false;
       }
 
       this.usbDevice = device;
+      const connection = await device.connect();
+      const credentialStore = new AdbWebCredentialStore();
+
+      const transport = await AdbDaemonTransport.authenticate({
+        serial: device.serial,
+        connection,
+        credentialStore
+      });
+
+      this.adb = new Adb(transport);
       this.isConnected = true;
       this.isDemoMode = false;
+
+      // Handle disconnect
+      this.adb.disconnected.then(() => {
+        this.disconnect();
+      }).catch(() => {});
+
+      // Query real device properties
+      let model = "Android Device";
+      let manufacturer = "Android";
+      let version = "Unknown";
+      let sdk = "Unknown";
+
+      try {
+        model = (await this.runAdbCommand("getprop ro.product.model")).trim() || model;
+        manufacturer = (await this.runAdbCommand("getprop ro.product.manufacturer")).trim() || manufacturer;
+        version = (await this.runAdbCommand("getprop ro.build.version.release")).trim() || version;
+        sdk = (await this.runAdbCommand("getprop ro.build.version.sdk")).trim() || sdk;
+      } catch (e) {
+        console.warn("Could not read getprop:", e);
+      }
+
       this.deviceInfo = {
-        model: device.productName || "Android Phone",
-        manufacturer: device.manufacturerName || "Android",
-        version: "USB Connected",
-        sdk: "Active",
-        serial: device.serialNumber || "USB-DEVICE"
+        model,
+        manufacturer,
+        version: "Android " + version,
+        sdk,
+        serial: device.serial || "USB-DEVICE"
       };
 
       this.emit("connected", { mode: "webusb", device: this.deviceInfo });
       await this.loadDevicePackages();
       return true;
     } catch (err) {
-      this.isConnected = false;
+      this.disconnect();
       throw err;
     }
   }
 
   startDemoMode() {
+    this.adb = null;
+    this.usbDevice = null;
     this.isConnected = true;
     this.isDemoMode = true;
     this.deviceInfo = {
@@ -129,30 +163,78 @@ export class WebAdbEngine {
   }
 
   async loadDevicePackages() {
-    if (this.isDemoMode) {
+    if (this.isDemoMode || !this.adb) {
       return Array.from(this.packages.values());
     }
 
-    this.packages.clear();
-    for (const [pkg, meta] of Object.entries(BLOATWARE_DATABASE)) {
-      this.packages.set(pkg, {
-        package: pkg,
-        name: meta.name,
-        category: meta.category,
-        safety: meta.safety,
-        status: "Enabled",
-        isSystem: true,
-        description: meta.desc,
-        apkPath: "/system/app/" + pkg + ".apk"
-      });
-    }
+    // Query real package sets from the connected phone
+    try {
+      const [allOut, uninstalledOut, systemOut, disabledOut, enabledOut] = await Promise.all([
+        this.runAdbCommand("pm list packages -a"),
+        this.runAdbCommand("pm list packages -u"),
+        this.runAdbCommand("pm list packages -s"),
+        this.runAdbCommand("pm list packages -d"),
+        this.runAdbCommand("pm list packages -e")
+      ]);
 
-    this.emit("packages_updated", Array.from(this.packages.values()));
-    return Array.from(this.packages.values());
+      const parse = (text) => {
+        if (!text) return new Set();
+        const set = new Set();
+        for (const line of text.split(/[\r\n]+/)) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("package:")) {
+            set.add(trimmed.slice("package:".length).trim());
+          }
+        }
+        return set;
+      };
+
+      const allPkgs = parse(allOut);
+      const uninstalledPkgs = parse(uninstalledOut);
+      const systemPkgs = parse(systemOut);
+      const disabledPkgs = parse(disabledOut);
+      const enabledPkgs = parse(enabledOut);
+
+      // Union of all active and uninstalled system packages
+      const combined = new Set([...allPkgs, ...uninstalledPkgs]);
+      const sorted = Array.from(combined).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+      this.packages.clear();
+      for (const pkg of sorted) {
+        const isSys = systemPkgs.has(pkg);
+        let status = "Unknown";
+        if (disabledPkgs.has(pkg)) {
+          status = "Disabled";
+        } else if (!allPkgs.has(pkg) && uninstalledPkgs.has(pkg)) {
+          status = "Uninstalled (User 0)";
+        } else if (enabledPkgs.has(pkg) || allPkgs.has(pkg)) {
+          status = "Enabled";
+        }
+
+        const meta = getPackageMeta(pkg);
+
+        this.packages.set(pkg, {
+          package: pkg,
+          name: meta.name,
+          category: meta.category,
+          safety: meta.safety,
+          status: status,
+          isSystem: isSys,
+          description: meta.desc,
+          apkPath: "/system/app/" + pkg + ".apk"
+        });
+      }
+
+      this.emit("packages_updated", Array.from(this.packages.values()));
+      return Array.from(this.packages.values());
+    } catch (err) {
+      console.error("Failed to load device packages:", err);
+      throw err;
+    }
   }
 
   async runAdbCommand(rawCommand) {
-    if (this.isDemoMode) {
+    if (this.isDemoMode || !this.adb) {
       await new Promise(r => setTimeout(r, 120));
       if (rawCommand.startsWith("pm disable-user")) {
         const pkg = rawCommand.split(" ").pop();
@@ -188,37 +270,39 @@ export class WebAdbEngine {
       return "Simulated output for: " + rawCommand;
     }
 
-    return "adb shell " + rawCommand + ": Success";
+    // Real WebUSB execution via ADB NoneProtocol Subprocess
+    try {
+      const output = await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
+      return output;
+    } catch (err) {
+      console.error("ADB command execution error:", err);
+      return "Error: " + err.message;
+    }
   }
-
 
   async lockPlayStore() {
     await this.runAdbCommand("pm disable-user --user 0 com.android.vending");
     await this.runAdbCommand("pm uninstall --user 0 com.android.vending");
-    if (this.packages.has("com.android.vending")) {
-      this.packages.get("com.android.vending").status = "Uninstalled (User 0)";
-    }
-    this.emit("packages_updated", Array.from(this.packages.values()));
+    await this.loadDevicePackages();
   }
 
   async restorePlayStore() {
     await this.runAdbCommand("cmd package install-existing com.android.vending");
     await this.runAdbCommand("pm enable com.android.vending");
-    if (this.packages.has("com.android.vending")) {
-      this.packages.get("com.android.vending").status = "Enabled";
-    }
-    this.emit("packages_updated", Array.from(this.packages.values()));
+    await this.loadDevicePackages();
   }
 
   disconnect() {
-    if (this.usbDevice) {
+    if (this.adb) {
       try {
-        this.usbDevice.close();
+        this.adb.close();
       } catch (e) {}
+      this.adb = null;
     }
     this.usbDevice = null;
     this.isConnected = false;
     this.isDemoMode = false;
+    this.packages.clear();
     this.emit("disconnected", null);
   }
 }
