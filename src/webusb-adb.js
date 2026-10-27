@@ -191,6 +191,25 @@ export class WebAdbEngine {
     return "adb shell " + rawCommand + ": Success";
   }
 
+
+  async lockPlayStore() {
+    await this.runAdbCommand("pm disable-user --user 0 com.android.vending");
+    await this.runAdbCommand("pm uninstall --user 0 com.android.vending");
+    if (this.packages.has("com.android.vending")) {
+      this.packages.get("com.android.vending").status = "Uninstalled (User 0)";
+    }
+    this.emit("packages_updated", Array.from(this.packages.values()));
+  }
+
+  async restorePlayStore() {
+    await this.runAdbCommand("cmd package install-existing com.android.vending");
+    await this.runAdbCommand("pm enable com.android.vending");
+    if (this.packages.has("com.android.vending")) {
+      this.packages.get("com.android.vending").status = "Enabled";
+    }
+    this.emit("packages_updated", Array.from(this.packages.values()));
+  }
+
   disconnect() {
     if (this.usbDevice) {
       try {

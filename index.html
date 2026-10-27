@@ -78,6 +78,21 @@
     <main class="main-content">
       <!-- Tab 1: Apps & Debloat -->
       <section id="tab-debloat" class="tab-pane active">
+        
+        <!-- Child-Safe Mode Banner -->
+        <div class="parental-banner-card" id="parental-banner">
+          <div class="parental-info">
+            <span class="parental-title">🛡️ Child-Safe Mode</span>
+            <span class="badge" id="playstore-status-pill">Play Store: Checking...</span>
+            <span class="parental-desc">Zero APK download required to restore.</span>
+          </div>
+          <div class="header-actions">
+            <button id="btn-toggle-playstore" class="btn btn-warning btn-sm" title="Lock or restore Google Play Store">
+              <span id="btn-toggle-playstore-label">🛡️ Lock Phone (Hide Play Store)</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Control Toolbar -->
         <div class="toolbar-card">
           <div class="toolbar-top">
@@ -171,6 +186,31 @@
       <!-- Tab 2: Tools & Power -->
       <section id="tab-tools" class="tab-pane">
         <div class="tools-grid">
+          
+          <!-- Child-Safe Mode Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">🛡️</div>
+              <div>
+                <h3>Child-Safe Phone Control</h3>
+                <p>Lock or restore Google Play Store (com.android.vending)</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                Remove Google Play Store to prevent children from browsing or downloading apps. When you need to install or update an app, unlock it with one click. Restores directly from the internal system partition without downloading any APK.
+              </p>
+              <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-warning" id="btn-tools-lock-playstore">
+                  <span>🛡️ Lock (Hide &amp; Uninstall)</span>
+                </button>
+                <button class="btn btn-success" id="btn-tools-restore-playstore">
+                  <span>🔓 Unlock (Restore &amp; Enable)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Device Power Card -->
           <div class="card">
             <div class="card-header">

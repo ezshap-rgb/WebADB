@@ -27,7 +27,8 @@ export const BLOATWARE_DATABASE = {
   "com.google.android.gm": { name: "Gmail", category: "Google", safety: "safe", desc: "Google email client." },
   "com.google.android.apps.maps": { name: "Google Maps", category: "Google", safety: "safe", desc: "Google Maps navigation and location search." },
   "com.google.android.gms": { name: "Google Play Services", category: "Core", safety: "essential", desc: "CRITICAL: Required for push notifications, location APIs, and Play Store." },
-  "com.google.android.vending": { name: "Google Play Store", category: "Core", safety: "essential", desc: "CRITICAL: Required to install, update, and license apps." },
+  "com.android.vending": { name: "Google Play Store", category: "Google", safety: "caution", desc: "Official app store. Can be locked or restored for child-safe control." },
+  "com.google.android.vending": { name: "Google Play Store", category: "Google", safety: "caution", desc: "Official app store. Can be locked or restored for child-safe control." },
   "com.google.android.gsf": { name: "Google Services Framework", category: "Core", safety: "essential", desc: "CRITICAL: Underpins all Google services communication." },
 
   // Samsung Bloatware
@@ -79,7 +80,6 @@ export const PROTECTED_SYSTEM_PACKAGES = [
   "com.android.phone",
   "com.android.providers.telephony",
   "com.google.android.gms",
-  "com.google.android.vending",
   "com.google.android.gsf"
 ];
 

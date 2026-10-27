@@ -57,6 +57,11 @@ const el = {
   btnRebootNormal: document.getElementById('btn-reboot-normal'),
   btnRebootRecovery: document.getElementById('btn-reboot-recovery'),
   btnRebootBootloader: document.getElementById('btn-reboot-bootloader'),
+  playStorePill: document.getElementById('playstore-status-pill'),
+  btnTogglePlayStore: document.getElementById('btn-toggle-playstore'),
+  btnTogglePlayStoreLabel: document.getElementById('btn-toggle-playstore-label'),
+  btnToolsLockPlayStore: document.getElementById('btn-tools-lock-playstore'),
+  btnToolsRestorePlayStore: document.getElementById('btn-tools-restore-playstore'),
   toastContainer: document.getElementById('toast-container')
 };
 
@@ -115,6 +120,18 @@ function renderTable(packages = Array.from(engine.packages.values())) {
   }
 
   el.emptyState.style.display = 'none';
+  // Update Child-Safe Play Store status
+  const vending = engine.packages.get('com.android.vending') || engine.packages.get('com.google.android.vending');
+  if (vending && vending.status === 'Enabled') {
+    el.playStorePill.textContent = 'Play Store: ACTIVE (Unlocked)';
+    el.playStorePill.className = 'badge badge-safe';
+    el.btnTogglePlayStoreLabel.textContent = '🛡️ Lock Phone (Hide Play Store)';
+  } else {
+    el.playStorePill.textContent = 'Play Store: LOCKED / HIDDEN (Child-Safe)';
+    el.playStorePill.className = 'badge badge-caution';
+    el.btnTogglePlayStoreLabel.textContent = '🔓 Unlock Phone (Restore Play Store)';
+  }
+
   el.badgeTotal.textContent = packages.length.toString();
 
   const filtered = packages.filter(pkg => {
@@ -401,7 +418,38 @@ el.btnConnect.addEventListener('click', async () => {
 });
 
 el.btnDemo.addEventListener('click', () => {
-  engine.startDemoMode();
+  
+// Child-Safe Play Store Actions
+el.btnTogglePlayStore.addEventListener('click', async () => {
+  const vending = engine.packages.get('com.android.vending') || engine.packages.get('com.google.android.vending');
+  if (vending && vending.status === 'Enabled') {
+    if (confirm("🛡️ CHILD-SAFE LOCK:\nHide & Uninstall Google Play Store for user 0?\n\nThe Play Store icon will vanish from the phone so the child cannot browse or install apps. You can restore it anytime with one click.")) {
+      await engine.lockPlayStore();
+      showToast("Play Store locked and uninstalled for user 0", "success");
+    }
+  } else {
+    if (confirm("🔓 UNLOCK & RESTORE:\nRestore Google Play Store directly from the internal system partition?\n\nNo APK download is required. It will be reinstalled and enabled immediately.")) {
+      await engine.restorePlayStore();
+      showToast("Play Store restored and enabled successfully", "success");
+    }
+  }
+});
+
+el.btnToolsLockPlayStore.addEventListener('click', async () => {
+  if (confirm("Hide & Uninstall Google Play Store for user 0?")) {
+    await engine.lockPlayStore();
+    showToast("Play Store locked", "success");
+  }
+});
+
+el.btnToolsRestorePlayStore.addEventListener('click', async () => {
+  if (confirm("Restore Google Play Store from internal system partition?")) {
+    await engine.restorePlayStore();
+    showToast("Play Store restored and enabled", "success");
+  }
+});
+
+engine.startDemoMode();
 });
 
 el.btnRebootNormal.addEventListener('click', async () => {

@@ -957,3 +957,35 @@ body {
   .package-table th:nth-child(5),
   .package-table td:nth-child(5) { display: none; }
 }
+
+/* Parental Control Banner */
+.parental-banner-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.parental-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.parental-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fbbf24;
+}
+
+.parental-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
