@@ -419,17 +419,25 @@ el.btnConnect.addEventListener('click', async () => {
 });
 
 el.btnDemo.addEventListener('click', () => {
-  
+  engine.startDemoMode();
+});
+
 // Child-Safe Play Store Actions
 el.btnTogglePlayStore.addEventListener('click', async () => {
+  if (!engine.isConnected) {
+    showToast("Please connect your phone via WebUSB first", "warning");
+    return;
+  }
   const vending = engine.packages.get('com.android.vending') || engine.packages.get('com.google.android.vending');
   if (vending && vending.status === 'Enabled') {
-    if (confirm("🛡️ CHILD-SAFE LOCK:\nHide & Uninstall Google Play Store for user 0?\n\nThe Play Store icon will vanish from the phone so the child cannot browse or install apps. You can restore it anytime with one click.")) {
+    if (confirm("CHILD-SAFE LOCK:\nHide and uninstall Google Play Store for user 0?\n\nThe Play Store icon will vanish from the phone so the child cannot browse or install apps. You can restore it anytime with one click.")) {
+      showToast("Locking Play Store...", "info");
       await engine.lockPlayStore();
-      showToast("Play Store locked and uninstalled for user 0", "success");
+      showToast("Play Store locked and hidden for user 0", "success");
     }
   } else {
-    if (confirm("🔓 UNLOCK & RESTORE:\nRestore Google Play Store directly from the internal system partition?\n\nNo APK download is required. It will be reinstalled and enabled immediately.")) {
+    if (confirm("UNLOCK & RESTORE:\nRestore Google Play Store directly from the internal system partition?\n\nNo APK download is required. It will be reinstalled and enabled immediately.")) {
+      showToast("Restoring Play Store...", "info");
       await engine.restorePlayStore();
       showToast("Play Store restored and enabled successfully", "success");
     }
@@ -437,21 +445,27 @@ el.btnTogglePlayStore.addEventListener('click', async () => {
 });
 
 el.btnToolsLockPlayStore.addEventListener('click', async () => {
+  if (!engine.isConnected) {
+    showToast("Please connect your phone via WebUSB first", "warning");
+    return;
+  }
   if (confirm("Hide & Uninstall Google Play Store for user 0?")) {
+    showToast("Locking Play Store...", "info");
     await engine.lockPlayStore();
     showToast("Play Store locked", "success");
   }
 });
 
 el.btnToolsRestorePlayStore.addEventListener('click', async () => {
+  if (!engine.isConnected) {
+    showToast("Please connect your phone via WebUSB first", "warning");
+    return;
+  }
   if (confirm("Restore Google Play Store from internal system partition?")) {
+    showToast("Restoring Play Store...", "info");
     await engine.restorePlayStore();
     showToast("Play Store restored and enabled", "success");
   }
-});
-
-// Initial state: show empty prompt or start demo if explicitly requested
-renderTable([]);
 });
 
 el.btnRebootNormal.addEventListener('click', async () => {
@@ -520,4 +534,5 @@ el.btnExport.addEventListener('click', () => {
   showToast("Exported snapshot JSON", "success");
 });
 
-engine.startDemoMode();
+// Initial state: empty until connected
+renderTable([]);
