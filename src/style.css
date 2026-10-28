@@ -112,19 +112,29 @@ body {
   flex-shrink: 0;
 }
 
-/* Solid White Two-Line Header Text (No Gradient) */
-.brand-title {
+/* Two-Line Header Brand */
+.brand-text {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+
+.brand-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: -0.02em;
   line-height: 1.15;
+  margin: 0;
 }
 
-.brand-title span {
-  color: #FFFFFF;
+.brand-subtitle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #637BFF;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .device-pill {
