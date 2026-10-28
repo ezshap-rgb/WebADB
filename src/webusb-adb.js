@@ -8,7 +8,6 @@ export class WebAdbEngine {
     this.adb = null;
     this.usbDevice = null;
     this.isConnected = false;
-    this.isDemoMode = false;
     this.deviceInfo = {
       model: "Unknown Device",
       manufacturer: "Android",
@@ -41,7 +40,7 @@ export class WebAdbEngine {
 
   async connectWebUsb() {
     if (!this.isWebUsbSupported()) {
-      throw new Error("WebUSB is not supported in this browser or context. Please use Chrome/Edge on HTTPS or localhost.");
+      throw new Error("WebUSB is not supported in this browser or context. Please use Chrome or Edge on HTTPS or localhost.");
     }
 
     try {
@@ -63,14 +62,11 @@ export class WebAdbEngine {
 
       this.adb = new Adb(transport);
       this.isConnected = true;
-      this.isDemoMode = false;
 
-      // Handle disconnect
       this.adb.disconnected.then(() => {
         this.disconnect();
       }).catch(() => {});
 
-      // Query real device properties
       let model = "Android Device";
       let manufacturer = "Android";
       let version = "Unknown";
@@ -102,72 +98,13 @@ export class WebAdbEngine {
     }
   }
 
-  startDemoMode() {
-    this.adb = null;
-    this.usbDevice = null;
-    this.isConnected = true;
-    this.isDemoMode = true;
-    this.deviceInfo = {
-      model: "Galaxy S24 Ultra",
-      manufacturer: "Samsung",
-      version: "Android 14 (OneUI 6.1)",
-      sdk: "34",
-      serial: "DEMO-USB-HOST"
-    };
-
-    this.packages.clear();
-    const demoPackages = [
-      ...Object.keys(BLOATWARE_DATABASE),
-      "com.android.chrome",
-      "com.android.settings",
-      "com.android.systemui",
-      "com.android.phone",
-      "com.android.providers.telephony",
-      "com.google.android.apps.messaging",
-      "com.google.android.dialer",
-      "com.google.android.calendar",
-      "com.google.android.deskclock",
-      "com.google.android.calculator",
-      "com.sec.android.app.camera",
-      "com.sec.android.gallery3d",
-      "com.samsung.android.messaging",
-      "com.samsung.android.dialer",
-      "com.samsung.android.calendar"
-    ];
-
-    for (const pkg of demoPackages) {
-      const meta = getPackageMeta(pkg);
-      let status = "Enabled";
-      if (pkg.includes("bixby.service") || pkg.includes("analytics")) {
-        status = "Disabled";
-      } else if (pkg.includes("music") || pkg.includes("podcasts")) {
-        status = "Uninstalled (User 0)";
-      }
-
-      const isSystem = !pkg.includes("whatsapp") && !pkg.includes("spotify") && !pkg.includes("tiktok");
-
-      this.packages.set(pkg, {
-        package: pkg,
-        name: meta.name,
-        category: meta.category,
-        safety: meta.safety,
-        status: status,
-        isSystem: isSystem,
-        description: meta.desc,
-        apkPath: "/system/app/" + meta.name.replace(/\s+/g, "") + "/" + pkg + ".apk"
-      });
-    }
-
-    this.emit("connected", { mode: "demo", device: this.deviceInfo });
-    this.emit("packages_updated", Array.from(this.packages.values()));
-  }
-
   async loadDevicePackages() {
-    if (this.isDemoMode || !this.adb) {
-      return Array.from(this.packages.values());
+    if (!this.adb) {
+      this.packages.clear();
+      this.emit("packages_updated", []);
+      return [];
     }
 
-    // Query real package sets from the connected phone
     try {
       const [allOut, uninstalledOut, systemOut, disabledOut, enabledOut] = await Promise.all([
         this.runAdbCommand("pm list packages -a"),
@@ -195,7 +132,6 @@ export class WebAdbEngine {
       const disabledPkgs = parse(disabledOut);
       const enabledPkgs = parse(enabledOut);
 
-      // Union of all active and uninstalled system packages
       const combined = new Set([...allPkgs, ...uninstalledPkgs]);
       const sorted = Array.from(combined).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
@@ -234,43 +170,10 @@ export class WebAdbEngine {
   }
 
   async runAdbCommand(rawCommand) {
-    if (this.isDemoMode || !this.adb) {
-      await new Promise(r => setTimeout(r, 120));
-      if (rawCommand.startsWith("pm disable-user")) {
-        const pkg = rawCommand.split(" ").pop();
-        if (this.packages.has(pkg)) {
-          this.packages.get(pkg).status = "Disabled";
-        }
-        return "Package " + pkg + " new state: disabled-user";
-      } else if (rawCommand.startsWith("pm enable")) {
-        const pkg = rawCommand.split(" ").pop();
-        if (this.packages.has(pkg)) {
-          this.packages.get(pkg).status = "Enabled";
-        }
-        return "Package " + pkg + " new state: default";
-      } else if (rawCommand.startsWith("pm uninstall")) {
-        const pkg = rawCommand.split(" ").pop();
-        if (this.packages.has(pkg)) {
-          this.packages.get(pkg).status = "Uninstalled (User 0)";
-        }
-        return "Success\n[Package " + pkg + " uninstalled for user 0]";
-      } else if (rawCommand.startsWith("cmd package install-existing")) {
-        const pkg = rawCommand.split(" ").pop();
-        if (this.packages.has(pkg)) {
-          this.packages.get(pkg).status = "Enabled";
-        }
-        return "Package " + pkg + " installed for user: 0";
-      } else if (rawCommand.startsWith("am force-stop")) {
-        return "Success: process killed.";
-      } else if (rawCommand.startsWith("pm clear")) {
-        return "Success: data and cache reset.";
-      } else if (rawCommand.includes("reboot")) {
-        return "Broadcast: Rebooting device...";
-      }
-      return "Simulated output for: " + rawCommand;
+    if (!this.adb) {
+      return "Error: No device connected";
     }
 
-    // Real WebUSB execution via ADB NoneProtocol Subprocess
     try {
       const output = await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
       return output;
@@ -301,8 +204,14 @@ export class WebAdbEngine {
     }
     this.usbDevice = null;
     this.isConnected = false;
-    this.isDemoMode = false;
     this.packages.clear();
+    this.deviceInfo = {
+      model: "Unknown Device",
+      manufacturer: "Android",
+      version: "Unknown",
+      sdk: "Unknown",
+      serial: ""
+    };
     this.emit("disconnected", null);
   }
 }

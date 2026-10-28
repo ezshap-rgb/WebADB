@@ -8,7 +8,6 @@ const el = {
   deviceDisplay: document.getElementById('device-display-name'),
   btnConnect: document.getElementById('btn-connect-usb'),
   btnConnectLabel: document.getElementById('btn-connect-label'),
-  btnDemo: document.getElementById('btn-demo-mode'),
   badgeTotal: document.getElementById('badge-total-packages'),
   navTabs: document.querySelectorAll('.nav-tab'),
   tabPanes: document.querySelectorAll('.tab-pane'),
@@ -85,23 +84,30 @@ function showToast(message, type = 'info') {
 // Engine event subscription
 engine.subscribe((event, data) => {
   if (event === 'connected') {
-    el.statusDot.className = 'status-dot ' + (data.mode === 'demo' ? 'demo' : 'connected');
-    el.deviceDisplay.textContent = data.device.manufacturer + ' ' + data.device.model + (data.mode === 'demo' ? ' (Simulator)' : ' (USB)');
+    el.statusDot.className = 'status-dot connected';
+    el.deviceDisplay.textContent = data.device.manufacturer + ' ' + data.device.model;
     el.btnConnectLabel.textContent = 'Disconnect';
-    
-    // Update Hardware info
+    el.btnConnect.classList.add('connected-state');
+
     el.infoModel.textContent = data.device.model;
     el.infoManufacturer.textContent = data.device.manufacturer;
     el.infoVersion.textContent = data.device.version;
     el.infoSdk.textContent = data.device.sdk;
     el.infoSerial.textContent = data.device.serial;
 
-    showToast('Connected to ' + data.device.model + ' via WebUSB', 'success');
-el.navTabs[0].click();
+    showToast('Connected to ' + data.device.model, 'success');
   } else if (event === 'disconnected') {
     el.statusDot.className = 'status-dot disconnected';
     el.deviceDisplay.textContent = 'No Device Connected';
     el.btnConnectLabel.textContent = 'Connect WebUSB';
+    el.btnConnect.classList.remove('connected-state');
+
+    el.infoModel.textContent = 'No Device';
+    el.infoManufacturer.textContent = '-';
+    el.infoVersion.textContent = '-';
+    el.infoSdk.textContent = '-';
+    el.infoSerial.textContent = 'Ready';
+
     renderTable([]);
     showToast('Device disconnected', 'info');
   } else if (event === 'packages_updated') {
@@ -114,6 +120,26 @@ function renderTable(packages = Array.from(engine.packages.values())) {
   selectedPackages.clear();
   updateSelectedBar();
 
+  // Update Child-Safe Play Store status
+  const vending = engine.packages.get('com.android.vending') || engine.packages.get('com.google.android.vending');
+  if (vending && vending.status === 'Enabled') {
+    el.playStorePill.textContent = 'Play Store: ACTIVE (Unlocked)';
+    el.playStorePill.className = 'badge badge-safe';
+    el.btnTogglePlayStoreLabel.textContent = '🛡️ Lock Phone (Hide Play Store)';
+  } else if (vending) {
+    el.playStorePill.textContent = 'Play Store: LOCKED / HIDDEN (Child-Safe)';
+    el.playStorePill.className = 'badge badge-caution';
+    el.btnTogglePlayStoreLabel.textContent = '🔓 Unlock Phone (Restore Play Store)';
+  } else if (engine.isConnected) {
+    el.playStorePill.textContent = 'Play Store: Not Found / Locked';
+    el.playStorePill.className = 'badge badge-caution';
+    el.btnTogglePlayStoreLabel.textContent = '🔓 Unlock Phone (Restore Play Store)';
+  } else {
+    el.playStorePill.textContent = 'Connect device to check';
+    el.playStorePill.className = 'badge';
+    el.btnTogglePlayStoreLabel.textContent = '🛡️ Lock Phone (Hide Play Store)';
+  }
+
   if (!packages || packages.length === 0) {
     el.emptyState.style.display = 'flex';
     el.badgeTotal.textContent = '0';
@@ -121,18 +147,6 @@ function renderTable(packages = Array.from(engine.packages.values())) {
   }
 
   el.emptyState.style.display = 'none';
-  // Update Child-Safe Play Store status
-  const vending = engine.packages.get('com.android.vending') || engine.packages.get('com.google.android.vending');
-  if (vending && vending.status === 'Enabled') {
-    el.playStorePill.textContent = 'Play Store: ACTIVE (Unlocked)';
-    el.playStorePill.className = 'badge badge-safe';
-    el.btnTogglePlayStoreLabel.textContent = '🛡️ Lock Phone (Hide Play Store)';
-  } else {
-    el.playStorePill.textContent = 'Play Store: LOCKED / HIDDEN (Child-Safe)';
-    el.playStorePill.className = 'badge badge-caution';
-    el.btnTogglePlayStoreLabel.textContent = '🔓 Unlock Phone (Restore Play Store)';
-  }
-
   el.badgeTotal.textContent = packages.length.toString();
 
   const filtered = packages.filter(pkg => {
@@ -404,6 +418,7 @@ el.btnConfirmExecute.addEventListener('click', async () => {
 el.btnCancelModal.addEventListener('click', () => { el.confirmModal.style.display = 'none'; });
 el.btnCloseModal.addEventListener('click', () => { el.confirmModal.style.display = 'none'; });
 
+// Connect / Disconnect button handling
 el.btnConnect.addEventListener('click', async () => {
   if (engine.isConnected) {
     engine.disconnect();
@@ -416,10 +431,6 @@ el.btnConnect.addEventListener('click', async () => {
       alert('Connection failed: ' + err.message);
     }
   }
-});
-
-el.btnDemo.addEventListener('click', () => {
-  engine.startDemoMode();
 });
 
 // Child-Safe Play Store Actions
@@ -469,6 +480,10 @@ el.btnToolsRestorePlayStore.addEventListener('click', async () => {
 });
 
 el.btnRebootNormal.addEventListener('click', async () => {
+  if (!engine.isConnected) {
+    showToast("Please connect your phone first", "warning");
+    return;
+  }
   if (confirm("Restart phone normally?")) {
     await engine.runAdbCommand("reboot");
     showToast("Reboot command sent", "info");
@@ -476,6 +491,10 @@ el.btnRebootNormal.addEventListener('click', async () => {
 });
 
 el.btnRebootRecovery.addEventListener('click', async () => {
+  if (!engine.isConnected) {
+    showToast("Please connect your phone first", "warning");
+    return;
+  }
   if (confirm("Reboot phone directly to Recovery Mode?")) {
     await engine.runAdbCommand("reboot recovery");
     showToast("Recovery reboot signal sent", "warning");
@@ -483,6 +502,10 @@ el.btnRebootRecovery.addEventListener('click', async () => {
 });
 
 el.btnRebootBootloader.addEventListener('click', async () => {
+  if (!engine.isConnected) {
+    showToast("Please connect your phone first", "warning");
+    return;
+  }
   if (confirm("Reboot phone to Fastboot / Bootloader?")) {
     await engine.runAdbCommand("reboot bootloader");
     showToast("Bootloader reboot signal sent", "warning");
@@ -519,8 +542,8 @@ el.btnClearTerminal.addEventListener('click', () => {
 
 el.btnExport.addEventListener('click', () => {
   const data = {
-    app: "WebADB",
-    version: "1.0",
+    app: "WebADB Studio",
+    version: "2.0",
     date: new Date().toISOString(),
     packages: Array.from(engine.packages.values())
   };
@@ -528,11 +551,50 @@ el.btnExport.addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'webadb-preset-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.download = 'webadb-studio-preset-' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   URL.revokeObjectURL(url);
   showToast("Exported snapshot JSON", "success");
 });
 
-// Initial state: empty until connected
+
+if (el.fileImport) {
+  el.fileImport.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const json = JSON.parse(evt.target.result);
+        if (Array.isArray(json.packages)) {
+          let count = 0;
+          for (const item of json.packages) {
+            const pkgName = typeof item === 'string' ? item : item.package;
+            if (pkgName && engine.packages.has(pkgName)) {
+              selectedPackages.add(pkgName);
+              count++;
+            }
+          }
+          const checks = el.tableBody.querySelectorAll('.pkg-check');
+          checks.forEach(chk => {
+            if (selectedPackages.has(chk.getAttribute('data-pkg'))) {
+              chk.checked = true;
+              chk.closest('tr')?.classList.add('selected');
+            }
+          });
+          updateSelectedBar();
+          showToast('Imported preset: selected ' + count + ' matching packages', 'success');
+        } else {
+          showToast('Invalid preset file format', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to parse preset JSON: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+}
+
+// Initial state: starts in Connect mode with empty table
 renderTable([]);

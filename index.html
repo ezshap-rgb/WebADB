@@ -2,29 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>WebADB — Android Debloater & Device Manager</title>
-  <meta name="description" content="In-browser WebUSB ADB controller for Android. Debloat, disable, uninstall, and inspect packages from your computer or another phone with zero installation." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>WebADB Studio — Clean Android Debloater & Parental Control</title>
+  <meta name="description" content="Professional in-browser WebUSB ADB controller for Android. Debloat, disable, uninstall, and lock/restore Google Play Store with zero software installation." />
+  <link rel="icon" type="image/jpeg" href="./icon.jpg" />
+  <link rel="apple-touch-icon" href="./icon.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
   <div id="app" class="app-layout">
-    <!-- Top Header -->
+    <!-- Studio Header -->
     <header class="app-header">
       <div class="header-left">
         <div class="brand">
-          <div class="brand-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="5" y="2" width="14" height="20" rx="3" ry="3"></rect>
-              <line x1="12" y1="18" x2="12.01" y2="18"></line>
-            </svg>
-          </div>
+          <img src="./icon.jpg" class="brand-logo-img" alt="WebADB Studio Logo" />
           <div class="brand-text">
-            <span class="brand-title">WebADB</span>
-            <span class="brand-badge">PRO DEBLOATER</span>
+            <span class="brand-title">WebADB Studio</span>
+            <span class="brand-badge">PRO DEBLOATER &amp; PARENTAL CONTROL</span>
           </div>
         </div>
 
@@ -35,13 +32,8 @@
       </div>
 
       <div class="header-actions">
-        <button id="btn-demo-mode" class="btn btn-ghost" title="Explore features with simulated device data">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          <span>Demo Mode</span>
-        </button>
-
-        <button id="btn-connect-usb" class="btn btn-primary" title="Connect your phone with a USB cable">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button id="btn-connect-usb" class="btn btn-connect-gradient" title="Connect your phone with a USB cable">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
           </svg>
@@ -54,13 +46,13 @@
     <nav class="nav-tabs" role="tablist">
       <button class="nav-tab active" data-tab="tab-debloat" role="tab">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-        <span>Apps & Debloat</span>
+        <span>Apps &amp; Debloat</span>
         <span class="counter-badge" id="badge-total-packages">0</span>
       </button>
 
       <button class="nav-tab" data-tab="tab-tools" role="tab">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-        <span>Tools & Power</span>
+        <span>Tools &amp; Power</span>
       </button>
 
       <button class="nav-tab" data-tab="tab-terminal" role="tab">
@@ -78,19 +70,16 @@
     <main class="main-content">
       <!-- Tab 1: Apps & Debloat -->
       <section id="tab-debloat" class="tab-pane active">
-        
-        <!-- Child-Safe Mode Banner -->
+        <!-- Child-Safe Parental Control Banner -->
         <div class="parental-banner-card" id="parental-banner">
           <div class="parental-info">
-            <span class="parental-title">🛡️ Child-Safe Mode</span>
-            <span class="badge" id="playstore-status-pill">Play Store: Checking...</span>
-            <span class="parental-desc">Zero APK download required to restore.</span>
+            <span class="parental-title">🛡️ Child-Safe Mode: Google Play Store</span>
+            <span class="badge" id="playstore-status-pill">Connect device to check</span>
+            <span class="parental-desc">Lock to hide Play Store; unlock restores from system partition with NO APK needed.</span>
           </div>
-          <div class="header-actions">
-            <button id="btn-toggle-playstore" class="btn btn-warning btn-sm" title="Lock or restore Google Play Store">
-              <span id="btn-toggle-playstore-label">🛡️ Lock Phone (Hide Play Store)</span>
-            </button>
-          </div>
+          <button id="btn-toggle-playstore" class="btn btn-warning btn-sm" title="Lock or restore Google Play Store">
+            <span id="btn-toggle-playstore-label">🛡️ Lock Phone (Hide Play Store)</span>
+          </button>
         </div>
 
         <!-- Control Toolbar -->
@@ -129,7 +118,7 @@
               <button class="chip chip-caution" data-filter="caution">🟡 Caution</button>
               <button class="chip" data-filter="carrier">📱 Carrier</button>
               <button class="chip" data-filter="oem">🏢 Samsung / Xiaomi</button>
-              <button class="chip" data-filter="telemetry">🕵️ Telemetry & Ads</button>
+              <button class="chip" data-filter="telemetry">🕵️ Telemetry &amp; Ads</button>
               <button class="chip" data-filter="inactive">⏸️ Inactive</button>
             </div>
           </div>
@@ -176,9 +165,9 @@
           </table>
 
           <div id="empty-state-message" class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="3" ry="3"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-            <h3>No Packages Loaded</h3>
-            <p>Connect your Android phone via WebUSB or launch <strong>Demo Mode</strong> above to browse and manage packages.</p>
+            <img src="./icon.jpg" class="empty-state-icon" alt="WebADB Studio Icon" />
+            <h3>No Device Connected</h3>
+            <p>Connect your Android phone via USB cable and click <strong>Connect WebUSB</strong> in the top header to inspect and debloat packages.</p>
           </div>
         </div>
       </section>
@@ -186,21 +175,20 @@
       <!-- Tab 2: Tools & Power -->
       <section id="tab-tools" class="tab-pane">
         <div class="tools-grid">
-          
           <!-- Child-Safe Mode Card -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">🛡️</div>
+              <div class="card-icon gradient-icon">🛡️</div>
               <div>
                 <h3>Child-Safe Phone Control</h3>
                 <p>Lock or restore Google Play Store (com.android.vending)</p>
               </div>
             </div>
             <div class="card-body">
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+              <p class="tool-desc">
                 Remove Google Play Store to prevent children from browsing or downloading apps. When you need to install or update an app, unlock it with one click. Restores directly from the internal system partition without downloading any APK.
               </p>
-              <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+              <div class="button-row">
                 <button class="btn btn-warning" id="btn-tools-lock-playstore">
                   <span>🛡️ Lock (Hide &amp; Uninstall)</span>
                 </button>
@@ -249,23 +237,23 @@
               <dl class="info-list">
                 <div class="info-item">
                   <dt>Model:</dt>
-                  <dd id="info-model">Unknown</dd>
+                  <dd id="info-model">No Device</dd>
                 </div>
                 <div class="info-item">
                   <dt>Manufacturer:</dt>
-                  <dd id="info-manufacturer">Android</dd>
+                  <dd id="info-manufacturer">-</dd>
                 </div>
                 <div class="info-item">
                   <dt>Android Version:</dt>
-                  <dd id="info-version">Unknown</dd>
+                  <dd id="info-version">-</dd>
                 </div>
                 <div class="info-item">
                   <dt>SDK Level:</dt>
-                  <dd id="info-sdk">Unknown</dd>
+                  <dd id="info-sdk">-</dd>
                 </div>
                 <div class="info-item">
                   <dt>USB Interface:</dt>
-                  <dd id="info-serial">WebUSB Ready</dd>
+                  <dd id="info-serial">Ready</dd>
                 </div>
               </dl>
             </div>
@@ -282,11 +270,11 @@
               <span class="dot yellow"></span>
               <span class="dot green"></span>
             </div>
-            <span class="terminal-title">ADB Shell Terminal</span>
+            <span class="terminal-title">WebADB Interactive Console</span>
             <button id="btn-clear-terminal" class="btn btn-ghost btn-sm">Clear</button>
           </div>
           <div class="terminal-output" id="terminal-output">
-            <div class="terminal-line text-muted">WebADB Interactive Console ready. Type a command below or choose a quick shortcut.</div>
+            <div class="terminal-line text-muted">WebADB Studio Console ready. Connect your phone above and run raw shell commands.</div>
           </div>
           <div class="terminal-input-bar">
             <span class="terminal-prompt">$ adb shell</span>
@@ -300,7 +288,7 @@
       <section id="tab-guide" class="tab-pane">
         <div class="guide-container">
           <div class="guide-hero">
-            <h2>Phone & Browser Setup Guide</h2>
+            <h2>Phone Connection &amp; Setup Guide</h2>
             <p>Connect your phone directly to your computer or to another phone using a USB-C cable.</p>
           </div>
 
@@ -320,13 +308,13 @@
             <div class="guide-card">
               <div class="step-num">3</div>
               <h3>Connect via USB Cable</h3>
-              <p>Plug your phone into your computer or connect two Android phones using a USB-C to USB-C cable. Tap <strong>Allow</strong> on the debugging prompt.</p>
+              <p>Plug your phone into your computer using a USB cable. Tap <strong>Allow</strong> on the debugging prompt.</p>
             </div>
 
             <div class="guide-card">
               <div class="step-num">4</div>
-              <h3>Phone-to-Phone Tips</h3>
-              <p>When connecting phone-to-phone, open Chrome on Phone A. If it charges Phone B instead of detecting it, switch the USB mode to <strong>Transfer files / Control device</strong>.</p>
+              <h3>Click Connect WebUSB</h3>
+              <p>Click the <strong>Connect WebUSB</strong> button above, select your phone in the browser dialog, and manage your packages instantly.</p>
             </div>
           </div>
         </div>
@@ -393,6 +381,6 @@
     <div class="toast-container" id="toast-container"></div>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
