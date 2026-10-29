@@ -177,15 +177,15 @@ export class WebAdbEngine {
         allOut = await this.runAdbCommand("pm list packages -a");
       }
 
-      let disabledOut = "";
-      try {
-        disabledOut = await this.runAdbCommand("pm list packages -d");
-      } catch (e) {}
-
+      let uninstalledOut = "";
       let systemOut = "";
-      try {
-        systemOut = await this.runAdbCommand("pm list packages -s");
-      } catch (e) {}
+      let disabledOut = "";
+      let enabledOut = "";
+
+      try { disabledOut = await this.runAdbCommand("pm list packages -d"); } catch (e) {}
+      try { systemOut = await this.runAdbCommand("pm list packages -s"); } catch (e) {}
+      try { uninstalledOut = await this.runAdbCommand("pm list packages -u"); } catch (e) {}
+      try { enabledOut = await this.runAdbCommand("pm list packages -e"); } catch (e) {}
 
       const parse = (text) => {
         if (!text) return new Set();
