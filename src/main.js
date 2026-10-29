@@ -57,8 +57,8 @@ const el = {
   btnRebootRecovery: document.getElementById('btn-reboot-recovery'),
   btnRebootBootloader: document.getElementById('btn-reboot-bootloader'),
   playStorePill: document.getElementById('playstore-status-pill'),
-  btnTogglePlayStore: document.getElementById('btn-toggle-playstore'),
-  btnTogglePlayStoreLabel: document.getElementById('btn-toggle-playstore-label'),
+  btnHomeLockPlayStore: document.getElementById('btn-home-lock-playstore'),
+  btnHomeRestorePlayStore: document.getElementById('btn-home-restore-playstore'),
   btnToolsLockPlayStore: document.getElementById('btn-tools-lock-playstore'),
   btnToolsRestorePlayStore: document.getElementById('btn-tools-restore-playstore'),
   dpmStatusLabel: document.getElementById('dpm-status-label'),
@@ -437,26 +437,33 @@ el.btnConnect.addEventListener('click', async () => {
 });
 
 // Child-Safe Play Store Actions
-el.btnTogglePlayStore.addEventListener('click', async () => {
-  if (!engine.isConnected) {
-    showToast("Please connect your phone via WebUSB first", "warning");
-    return;
-  }
-  const vending = engine.packages.get('com.android.vending') || engine.packages.get('com.google.android.vending');
-  if (vending && vending.status === 'Enabled') {
-    if (confirm("CHILD-SAFE LOCK:\nHide and uninstall Google Play Store for user 0?\n\nThe Play Store icon will vanish from the phone so the child cannot browse or install apps. You can restore it anytime with one click.")) {
+if (el.btnHomeLockPlayStore) {
+  el.btnHomeLockPlayStore.addEventListener('click', async () => {
+    if (!engine.isConnected) {
+      showToast("Please connect phone via WebUSB first", "warning");
+      return;
+    }
+    if (confirm("CHILD-SAFE LOCK:\nHide & Uninstall Google Play Store (com.android.vending) for user 0?")) {
       showToast("Locking Play Store...", "info");
       await engine.lockPlayStore();
-      showToast("Play Store locked and hidden for user 0", "success");
+      showToast("Play Store locked & hidden", "success");
     }
-  } else {
-    if (confirm("UNLOCK & RESTORE:\nRestore Google Play Store directly from the internal system partition?\n\nNo APK download is required. It will be reinstalled and enabled immediately.")) {
+  });
+}
+
+if (el.btnHomeRestorePlayStore) {
+  el.btnHomeRestorePlayStore.addEventListener('click', async () => {
+    if (!engine.isConnected) {
+      showToast("Please connect phone via WebUSB first", "warning");
+      return;
+    }
+    if (confirm("RESTORE GOOGLE PLAY STORE:\nReinstall and enable Google Play Store from internal system partition?")) {
       showToast("Restoring Play Store...", "info");
       await engine.restorePlayStore();
-      showToast("Play Store restored and enabled successfully", "success");
+      showToast("Play Store restored & enabled", "success");
     }
-  }
-});
+  });
+}
 
 el.btnToolsLockPlayStore.addEventListener('click', async () => {
   if (!engine.isConnected) {

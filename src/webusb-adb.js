@@ -44,65 +44,71 @@ export class WebAdbEngine {
     }
 
     try {
-      const manager = new AdbDaemonWebUsbDeviceManager(navigator.usb);
-      let device;
+      // In mobile-to-mobile OTG, Chrome requires empty filters ({ filters: [] }) to show all USB peripherals
+      let rawDevice = null;
       try {
-        // First try standard ADB interface filter
-        device = await manager.requestDevice();
+        rawDevice = await navigator.usb.requestDevice({ filters: [] });
       } catch (err) {
-        console.warn("Filtered requestDevice failed, trying raw requestDevice:", err);
+        if (err.name === "NotFoundError") {
+          return false;
+        }
+        console.warn("requestDevice with empty filter failed, trying manager:", err);
       }
 
-      // If standard filter returned nothing, allow user to pick ANY connected USB device
-      if (!device) {
-        try {
-          const rawDevice = await navigator.usb.requestDevice({ filters: [] });
-          if (rawDevice) {
-            // Find an ADB or compatible interface on the selected device
-            let adbInterface = null;
-            for (const config of rawDevice.configurations) {
-              for (const iface of config.interfaces) {
-                for (const alt of iface.alternates) {
-                  // Standard ADB is class 255 (0xFF), subclass 66 (0x42), protocol 1 (0x01)
-                  if (alt.interfaceClass === 0xff && alt.interfaceSubclass === 0x42 && alt.interfaceProtocol === 1) {
-                    adbInterface = { configuration: config, interface_: iface, alternate: alt };
-                    break;
-                  }
+      let device = null;
+      if (rawDevice) {
+        // Find an ADB or compatible interface on the selected device
+        let adbInterface = null;
+        for (const config of rawDevice.configurations) {
+          for (const iface of config.interfaces) {
+            for (const alt of iface.alternates) {
+              if (alt.interfaceClass === 0xff && alt.interfaceSubclass === 0x42 && alt.interfaceProtocol === 1) {
+                adbInterface = { configuration: config, interface_: iface, alternate: alt };
+                break;
+              }
+            }
+            if (adbInterface) break;
+          }
+          if (adbInterface) break;
+        }
+
+        // Fallback to any class 0xff interface
+        if (!adbInterface) {
+          for (const config of rawDevice.configurations) {
+            for (const iface of config.interfaces) {
+              for (const alt of iface.alternates) {
+                if (alt.interfaceClass === 0xff) {
+                  adbInterface = { configuration: config, interface_: iface, alternate: alt };
+                  break;
                 }
-                if (adbInterface) break;
               }
               if (adbInterface) break;
             }
-
-            // If not strictly matching 0xFF/0x42/0x01, fallback to the first vendor-specific interface (class 255)
-            if (!adbInterface) {
-              for (const config of rawDevice.configurations) {
-                for (const iface of config.interfaces) {
-                  for (const alt of iface.alternates) {
-                    if (alt.interfaceClass === 0xff) {
-                      adbInterface = { configuration: config, interface_: iface, alternate: alt };
-                      break;
-                    }
-                  }
-                  if (adbInterface) break;
-                }
-                if (adbInterface) break;
-              }
-            }
-
-            if (adbInterface) {
-              const { AdbDaemonWebUsbDevice } = await import('@yume-chan/adb-daemon-webusb');
-              device = new AdbDaemonWebUsbDevice(rawDevice, adbInterface, navigator.usb);
-            } else {
-              throw new Error("The selected USB device does not have an active ADB interface. Please make sure USB Debugging is turned ON on the target phone.");
-            }
+            if (adbInterface) break;
           }
-        } catch (rawErr) {
-          if (rawErr.name === "NotFoundError") {
-            return false;
-          }
-          throw rawErr;
         }
+
+        if (adbInterface) {
+          const { AdbDaemonWebUsbDevice } = await import('@yume-chan/adb-daemon-webusb');
+          device = new AdbDaemonWebUsbDevice(rawDevice, adbInterface, navigator.usb);
+        } else {
+          // If no 0xff found, attempt using the first configuration and interface
+          if (rawDevice.configurations.length > 0 && rawDevice.configurations[0].interfaces.length > 0) {
+            const config = rawDevice.configurations[0];
+            const iface = config.interfaces[0];
+            const alt = iface.alternates[0];
+            const { AdbDaemonWebUsbDevice } = await import('@yume-chan/adb-daemon-webusb');
+            device = new AdbDaemonWebUsbDevice(rawDevice, { configuration: config, interface_: iface, alternate: alt }, navigator.usb);
+          } else {
+            throw new Error("No usable USB interface found on selected device. Verify USB Debugging is ON.");
+          }
+        }
+      }
+
+      // If rawDevice wasn't selected or failed, fallback to manager
+      if (!device) {
+        const manager = new AdbDaemonWebUsbDeviceManager(navigator.usb);
+        device = await manager.requestDevice();
       }
 
       if (!device) {
