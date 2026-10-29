@@ -254,11 +254,18 @@ export class WebAdbEngine {
     }
 
     try {
-      const output = await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
-      return output;
+      // Prefer modern Shell Protocol (V2) when available; fallback to noneProtocol
+      if (this.adb.subprocess.shellProtocol) {
+        return await this.adb.subprocess.shellProtocol.spawnWaitText(rawCommand);
+      }
+      return await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
     } catch (err) {
-      console.error("ADB command execution error:", err);
-      return "Error: " + err.message;
+      try {
+        return await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
+      } catch (innerErr) {
+        console.error("ADB command execution error:", err);
+        return "Error: " + err.message;
+      }
     }
   }
 

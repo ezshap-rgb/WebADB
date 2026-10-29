@@ -99,6 +99,7 @@ engine.subscribe((event, data) => {
     el.infoSerial.textContent = data.device.serial;
 
     showToast('Connected to ' + data.device.model, 'success');
+    updateDpmStatus();
   } else if (event === 'disconnected') {
     el.statusDot.className = 'status-dot disconnected';
     el.deviceDisplay.textContent = 'No Device Connected';
