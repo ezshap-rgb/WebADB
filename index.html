@@ -203,7 +203,11 @@
           <!-- Android Enterprise Device Owner Card -->
           <div class="card">
             <div class="card-header">
-              <div class="card-icon" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;">???</div>
+              <div class="card-icon" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
               <div>
                 <h3>Device Owner Policy (DPM)</h3>
                 <p id="dpm-status-label">Status: Connect device to check</p>
@@ -212,10 +216,18 @@
             <div class="card-body">
               <div class="button-row">
                 <button class="btn btn-primary" id="btn-tools-setup-dpm">
-                  <span>??? Set Device Owner</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <span>Set Device Owner</span>
                 </button>
                 <button class="btn btn-secondary" id="btn-tools-remove-dpm">
-                  <span>?? Return to Open Phone</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                  </svg>
+                  <span>Return to Open Phone</span>
                 </button>
               </div>
             </div>
