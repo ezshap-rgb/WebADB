@@ -134,19 +134,19 @@ function renderTable(packages = Array.from(engine.packages.values())) {
   if (vending && vending.status === 'Enabled') {
     el.playStorePill.textContent = 'Play Store: ACTIVE (Unlocked)';
     el.playStorePill.className = 'badge badge-safe';
-    el.btnTogglePlayStoreLabel.textContent = '🛡️ Lock Phone (Hide Play Store)';
+    
   } else if (vending) {
     el.playStorePill.textContent = 'Play Store: LOCKED / HIDDEN (Child-Safe)';
     el.playStorePill.className = 'badge badge-caution';
-    el.btnTogglePlayStoreLabel.textContent = '🔓 Unlock Phone (Restore Play Store)';
+    
   } else if (engine.isConnected) {
     el.playStorePill.textContent = 'Play Store: Not Found / Locked';
     el.playStorePill.className = 'badge badge-caution';
-    el.btnTogglePlayStoreLabel.textContent = '🔓 Unlock Phone (Restore Play Store)';
+    
   } else {
     el.playStorePill.textContent = 'Connect device to check';
     el.playStorePill.className = 'badge';
-    el.btnTogglePlayStoreLabel.textContent = '🛡️ Lock Phone (Hide Play Store)';
+    
   }
 
   if (!packages || packages.length === 0) {
