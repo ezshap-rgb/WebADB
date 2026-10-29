@@ -687,14 +687,65 @@ const btnReload = document.getElementById('btn-force-reload-packages');
 if (btnReload) {
   btnReload.addEventListener('click', async () => {
     if (!engine.isConnected) {
-      showToast('Connect phone via WebUSB first', 'warning');
+      alert('Please connect phone via WebUSB first.');
       return;
     }
-    showToast('Loading packages...', 'info');
+    btnReload.disabled = true;
+    btnReload.innerHTML = '<span>Scanning...</span>';
+    showToast('Scanning packages on device...', 'info');
     try {
-      await engine.loadDevicePackages();
-    } catch (e) {
-      alert('Load error: ' + e.message);
+      // 1. Run the exact same command that succeeded in the terminal
+      const rawText = await engine.runAdbCommand("pm list packages");
+      if (!rawText || rawText.startsWith("Error:")) {
+        alert("Command failed: " + rawText);
+        btnReload.disabled = false;
+        btnReload.innerHTML = '<span>Load / Refresh Packages</span>';
+        return;
+      }
+
+      // 2. Parse lines
+      const lines = rawText.split(/[\r\n]+/);
+      const pkgNames = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("package:")) {
+          pkgNames.push(trimmed.slice(8).trim());
+        } else if (trimmed && trimmed.includes(".") && !trimmed.startsWith("$")) {
+          pkgNames.push(trimmed);
+        }
+      }
+
+      if (pkgNames.length === 0) {
+        alert("Received 0 packages. Raw output:\n" + rawText.slice(0, 300));
+        btnReload.disabled = false;
+        btnReload.innerHTML = '<span>Load / Refresh Packages</span>';
+        return;
+      }
+
+      // 3. Populate engine packages
+      engine.packages.clear();
+      for (const p of pkgNames) {
+        const meta = (await import('./bloatware-db.js')).getPackageMeta(p);
+        engine.packages.set(p, {
+          package: p,
+          name: meta.name,
+          category: meta.category,
+          safety: meta.safety,
+          status: 'Enabled',
+          isSystem: false,
+          description: meta.desc,
+          apkPath: '/system/app/' + p + '.apk'
+        });
+      }
+
+      // 4. Render immediately to table
+      renderTable(Array.from(engine.packages.values()));
+      showToast(`Successfully loaded ${engine.packages.size} packages!`, 'success');
+    } catch (err) {
+      alert("Error loading packages: " + (err.stack || err.message));
+    } finally {
+      btnReload.disabled = false;
+      btnReload.innerHTML = '<span>Load / Refresh Packages</span>';
     }
   });
 }
