@@ -240,8 +240,10 @@ export class WebAdbEngine {
         });
       }
 
-      this.emit("packages_updated", Array.from(this.packages.values()));
-      return Array.from(this.packages.values());
+      const pkgList = Array.from(this.packages.values());
+      console.log(`Loaded ${pkgList.length} packages (all: ${allPkgs.size})`);
+      this.emit("packages_updated", pkgList);
+      return pkgList;
     } catch (err) {
       console.error("Failed to load device packages:", err);
       throw err;

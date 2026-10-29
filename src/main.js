@@ -116,6 +116,11 @@ engine.subscribe((event, data) => {
     showToast('Device disconnected', 'info');
   } else if (event === 'packages_updated') {
     renderTable(data);
+    if (data && data.length > 0) {
+      showToast(`Loaded ${data.length} packages`, 'success');
+    } else {
+      showToast('No packages returned by phone', 'warning');
+    }
   }
 });
 
