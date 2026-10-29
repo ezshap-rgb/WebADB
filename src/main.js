@@ -681,3 +681,20 @@ if (el.btnToolsRemoveDpm) {
     }
   });
 }
+
+
+const btnReload = document.getElementById('btn-force-reload-packages');
+if (btnReload) {
+  btnReload.addEventListener('click', async () => {
+    if (!engine.isConnected) {
+      showToast('Connect phone via WebUSB first', 'warning');
+      return;
+    }
+    showToast('Loading packages...', 'info');
+    try {
+      await engine.loadDevicePackages();
+    } catch (e) {
+      alert('Load error: ' + e.message);
+    }
+  });
+}

@@ -137,25 +137,34 @@ export class WebAdbEngine {
       let version = "Unknown";
       let sdk = "Unknown";
 
-      try {
-        model = (await this.runAdbCommand("getprop ro.product.model")).trim() || model;
-        manufacturer = (await this.runAdbCommand("getprop ro.product.manufacturer")).trim() || manufacturer;
-        version = (await this.runAdbCommand("getprop ro.build.version.release")).trim() || version;
-        sdk = (await this.runAdbCommand("getprop ro.build.version.sdk")).trim() || sdk;
-      } catch (e) {
-        console.warn("Could not read getprop:", e);
-      }
-
       this.deviceInfo = {
-        model,
-        manufacturer,
-        version: "Android " + version,
-        sdk,
+        model: "Android Device",
+        manufacturer: "Android",
+        version: "Android",
+        sdk: "",
         serial: device.serial || "USB-DEVICE"
       };
 
+      // Emit connected immediately so UI reflects the connected state
       this.emit("connected", { mode: "webusb", device: this.deviceInfo });
-      await this.loadDevicePackages();
+
+      // Run properties and package loading asynchronously without hanging the connection return
+      (async () => {
+        try {
+          const m = await this.runAdbCommand("getprop ro.product.model");
+          if (m && !m.startsWith("Error:")) this.deviceInfo.model = m.trim();
+          const mf = await this.runAdbCommand("getprop ro.product.manufacturer");
+          if (mf && !mf.startsWith("Error:")) this.deviceInfo.manufacturer = mf.trim();
+          const v = await this.runAdbCommand("getprop ro.build.version.release");
+          if (v && !v.startsWith("Error:")) this.deviceInfo.version = "Android " + v.trim();
+          const s = await this.runAdbCommand("getprop ro.build.version.sdk");
+          if (s && !s.startsWith("Error:")) this.deviceInfo.sdk = s.trim();
+          this.emit("connected", { mode: "webusb", device: this.deviceInfo });
+        } catch (e) {}
+
+        await this.loadDevicePackages();
+      })();
+
       return true;
     } catch (err) {
       this.disconnect();
