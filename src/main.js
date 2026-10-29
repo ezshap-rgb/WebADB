@@ -437,7 +437,7 @@ el.btnConnect.addEventListener('click', async () => {
     await engine.connectWebUsb();
   } catch (err) {
     if (err.name !== 'NotFoundError') {
-      alert('Connection failed: ' + err.message);
+      alert('Connection error: ' + (err.stack || err.message));
     }
   }
 });

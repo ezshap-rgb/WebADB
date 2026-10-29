@@ -235,7 +235,6 @@ export class WebAdbEngine {
       }
 
       const pkgList = Array.from(this.packages.values());
-      console.log(`Loaded ${pkgList.length} packages (all: ${allPkgs.size})`);
       this.emit("packages_updated", pkgList);
       return pkgList;
     } catch (err) {
@@ -252,15 +251,15 @@ export class WebAdbEngine {
     try {
       if (this.adb.subprocess.shellProtocol) {
         const res = await this.adb.subprocess.shellProtocol.spawnWaitText(rawCommand);
-        // spawnWaitText on shellProtocol returns { stdout: string, stderr: string, exitCode: number }
-        return typeof res === "string" ? res : (res.stdout || res.stderr || "");
+        const out = typeof res === "string" ? res : ((res && res.stdout) ? res.stdout : (res && res.stderr ? res.stderr : ""));
+        return out;
       }
       const res = await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
-      return typeof res === "string" ? res : (res.stdout || res.stderr || "");
+      return typeof res === "string" ? res : (res || "");
     } catch (err) {
       try {
         const res = await this.adb.subprocess.noneProtocol.spawnWaitText(rawCommand);
-        return typeof res === "string" ? res : (res.stdout || res.stderr || "");
+        return typeof res === "string" ? res : (res || "");
       } catch (innerErr) {
         console.error("ADB command execution error:", err);
         return "Error: " + err.message;
