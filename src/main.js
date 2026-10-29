@@ -598,3 +598,11 @@ if (el.fileImport) {
 
 // Initial state: starts in Connect mode with empty table
 renderTable([]);
+
+// Register service worker for PWA / TWA installability
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
