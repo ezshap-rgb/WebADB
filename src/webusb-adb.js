@@ -171,27 +171,21 @@ export class WebAdbEngine {
     }
 
     try {
-      // In WebUSB OTG, running 5 concurrent subshells simultaneously can overwhelm the single USB packet stream
-      // We run them sequentially or fallback to basic pm list packages
-      let allOut = "";
-      let uninstalledOut = "";
-      let systemOut = "";
-      let disabledOut = "";
-      let enabledOut = "";
-
-      try {
+      // Direct raw query - known to work in the terminal!
+      let allOut = await this.runAdbCommand("pm list packages");
+      if (!allOut || typeof allOut !== "string" || allOut.startsWith("Error:")) {
         allOut = await this.runAdbCommand("pm list packages -a");
-        if (!allOut || allOut.startsWith("Error:")) {
-          allOut = await this.runAdbCommand("pm list packages");
-        }
-      } catch (e) {
-        allOut = await this.runAdbCommand("pm list packages");
       }
 
-      try { uninstalledOut = await this.runAdbCommand("pm list packages -u"); } catch (e) {}
-      try { systemOut = await this.runAdbCommand("pm list packages -s"); } catch (e) {}
-      try { disabledOut = await this.runAdbCommand("pm list packages -d"); } catch (e) {}
-      try { enabledOut = await this.runAdbCommand("pm list packages -e"); } catch (e) {}
+      let disabledOut = "";
+      try {
+        disabledOut = await this.runAdbCommand("pm list packages -d");
+      } catch (e) {}
+
+      let systemOut = "";
+      try {
+        systemOut = await this.runAdbCommand("pm list packages -s");
+      } catch (e) {}
 
       const parse = (text) => {
         if (!text) return new Set();
