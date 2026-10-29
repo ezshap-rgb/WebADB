@@ -195,6 +195,28 @@ export class WebAdbEngine {
     await this.loadDevicePackages();
   }
 
+
+  async checkDpmStatus() {
+    const out = await this.runAdbCommand("dpm list-owners");
+    return out.includes("com.afwsamples.testdpc");
+  }
+
+  async setupDeviceOwner() {
+    // Check if accounts exist
+    const acc = await this.runAdbCommand("dumpsys account");
+    const hasAccounts = acc.includes("Account {name=") && acc.includes("type=");
+    if (hasAccounts) {
+      throw new Error("ACCOUNTS_DETECTED");
+    }
+    await this.runAdbCommand("dpm set-device-owner com.afwsamples.testdpc/.DeviceAdminReceiver");
+    await this.runAdbCommand("dpm set-user-restriction no_install_unknown_sources 1");
+  }
+
+  async removeDeviceOwner() {
+    await this.runAdbCommand("dpm remove-active-admin com.afwsamples.testdpc/.DeviceAdminReceiver");
+    await this.runAdbCommand("pm uninstall com.afwsamples.testdpc");
+  }
+
   disconnect() {
     if (this.adb) {
       try {

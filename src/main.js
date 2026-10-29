@@ -61,6 +61,9 @@ const el = {
   btnTogglePlayStoreLabel: document.getElementById('btn-toggle-playstore-label'),
   btnToolsLockPlayStore: document.getElementById('btn-tools-lock-playstore'),
   btnToolsRestorePlayStore: document.getElementById('btn-tools-restore-playstore'),
+  dpmStatusLabel: document.getElementById('dpm-status-label'),
+  btnToolsSetupDpm: document.getElementById('btn-tools-setup-dpm'),
+  btnToolsRemoveDpm: document.getElementById('btn-tools-remove-dpm'),
   toastContainer: document.getElementById('toast-container')
 };
 
@@ -606,3 +609,62 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+
+
+async function updateDpmStatus() {
+  if (!el.dpmStatusLabel || !engine.isConnected) return;
+  try {
+    const isOwner = await engine.checkDpmStatus();
+    el.dpmStatusLabel.textContent = isOwner ? "Status: Managed (Device Owner Active)" : "Status: Unmanaged (Open Phone)";
+    el.dpmStatusLabel.style.color = isOwner ? "#38bdf8" : "#a1a1aa";
+  } catch (e) {
+    el.dpmStatusLabel.textContent = "Status: Check failed";
+  }
+}
+
+if (el.btnToolsSetupDpm) {
+  el.btnToolsSetupDpm.addEventListener('click', async () => {
+    if (!engine.isConnected) {
+      showToast("Please connect phone via WebUSB first", "warning");
+      return;
+    }
+    const confirmMsg = "??? SET DEVICE OWNER (CHILD-SAFE LOCK):\n\n" +
+      "Requirements:\n" +
+      "1. Make sure TestDPC app is installed on the phone.\n" +
+      "2. Remove all Google/Samsung accounts from Settings > Accounts first.\n\n" +
+      "Once set, manual APK installs are permanently disabled at the OS level.\n" +
+      "Proceed to set Device Owner?";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      showToast("Setting Device Owner...", "info");
+      await engine.setupDeviceOwner();
+      showToast("Device Owner provisioned successfully!", "success");
+      await updateDpmStatus();
+    } catch (err) {
+      if (err.message === "ACCOUNTS_DETECTED") {
+        alert("?? ACCOUNTS DETECTED:\nPlease go to Settings > Accounts on the phone and remove all Google/Samsung accounts before setting Device Owner. You can re-add them right after!");
+      } else {
+        showToast("DPM Error: " + err.message, "error");
+      }
+    }
+  });
+}
+
+if (el.btnToolsRemoveDpm) {
+  el.btnToolsRemoveDpm.addEventListener('click', async () => {
+    if (!engine.isConnected) {
+      showToast("Please connect phone via WebUSB first", "warning");
+      return;
+    }
+    if (!confirm("?? RETURN TO OPEN PHONE:\n\nRemove Device Owner policies and return this to an open phone?")) return;
+    try {
+      showToast("Removing Device Owner...", "info");
+      await engine.removeDeviceOwner();
+      showToast("Device Owner removed. Phone is now Open!", "success");
+      await updateDpmStatus();
+    } catch (err) {
+      showToast("Error: " + err.message, "error");
+    }
+  });
+}
